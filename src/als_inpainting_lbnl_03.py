@@ -35,15 +35,6 @@ print(f"Using device: {device}")
 
 
 torch.cuda.empty_cache()
-# Initialize the TUNet model using hyperparameters
-# tunet_model = tunet.TUNet(
-#     image_shape=(512, 512),
-#     in_channels=hyperparams['in_channels'],
-#     out_channels=hyperparams['out_channels'],
-#     base_channels=hyperparams.get('base_channels', 4),
-#     depth= 30, # hyperparams['depth'],
-#     growth_rate=hyperparams.get('growth_rate', 1.5)
-# )
 
 msdnet_model = msdnet.MixedScaleDenseNetwork(
     in_channels=hyperparams['in_channels'],
@@ -81,7 +72,7 @@ transform = transforms.Compose([
     transforms.Resize((512, 512), interpolation=Image.BICUBIC),
     transforms.ToTensor(),
     transforms.Lambda(safe_divide),
-    transforms.Lambda(safe_log1p)
+    transforms.Lambda(safe_log1p) # Possible bug
 ])
 
 # Process each image in the directory
@@ -108,7 +99,7 @@ for filename in os.listdir(input_directory):
         quilt = qlty2D.NCYXQuilt(X=512,
                                  Y=512,
                                  window=(512, 128),
-                                 step=(64, 64),
+                                 step=(512, 64),
                                  border=(0, 0),
                                  border_weight=0)
 
@@ -150,7 +141,7 @@ for filename in os.listdir(input_directory):
         try:
             final_output_np = final_output.squeeze().numpy()  # Remove batch dimension and convert to NumPy array
             print(f"Final output shape 2: {final_output.shape}")
-            final_output_np = np.clip(final_output_np, 0, None)  # Ensure non-negative
+            # final_output_np = np.clip(final_output_np, 0, None)  # Ensure non-negative
 
             if final_output_np.ndim > 2:
                 final_output_np = final_output_np.squeeze()
@@ -159,14 +150,6 @@ for filename in os.listdir(input_directory):
 
             # Create PIL image
             final_image = Image.fromarray(final_output_np, mode='L')  # 'L' mode for grayscale
-            
-            # Save as PNG instead of JPEG to preserve quality
-            # output_path = os.path.splitext(output_path)[0] + '.png'
-
-            # Rescale to original intensity range
-            # final_output_np = (final_output_np - final_output_np.min()) / (final_output_np.max() - final_output_np.min())
-            # final_output_np = final_output_np * (input_max - input_min) + input_min
-            # final_output_np = final_output_np.astype(np.uint8)
 
             final_image.save(output_path)
         except Exception as e:
